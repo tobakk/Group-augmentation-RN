@@ -68,4 +68,5 @@ fabric.properties
 
 .gradle
 
-cmake-build-debug
+cmake-build-debug/
+.idea
