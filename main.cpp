@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <vector>
 #include <random>
+#include <pthread.h>
 //#include <chrono> //if we use the system clock as seed
 
 using namespace std;
@@ -156,7 +157,21 @@ Individual::Individual(const Individual &copy) {
 
 struct Group // define group traits
 {
-	Group(double alpha_, double alphaAge_, double alphaAge2_, double beta_, double betaAge_, int numhelp_);
+	Group(double alpha_ = INIT_ALPHA, double alphaAge_ = INIT_ALPHA_AGE, double alphaAge2_ = INIT_ALPHA_AGE2, double beta_ = INIT_BETA, double betaAge_ = INIT_BETA_AGE, int numhelp_ = INIT_NUM_HELPERS)
+	{
+		vbreeder = Individual(alpha_, alphaAge_, alphaAge2_, beta_, betaAge_, DriftUniform(generator), BREEDER);
+		breederalive = 1;
+		fecundity = NO_VALUE;
+		realfecundity = NO_VALUE;
+
+		for (int i = 0; i < numhelp_; ++i)
+		{
+			vhelpers.push_back(Individual(alpha_, alphaAge_, alphaAge2_, beta_, betaAge_, DriftUniform(generator), HELPER));
+		}
+
+		TotalPopulation();
+	}
+
 	double cumhelp;
 	int totalHelpers;
 	bool breederalive;                                     // for the breeder: 1 alive, 0 dead
@@ -179,20 +194,6 @@ struct Group // define group traits
 };
 
 
-Group::Group(double alpha_ = INIT_ALPHA, double alphaAge_ = INIT_ALPHA_AGE, double alphaAge2_ = INIT_ALPHA_AGE2, double beta_ = INIT_BETA, double betaAge_ = INIT_BETA_AGE, int numhelp_ = INIT_NUM_HELPERS)
-{
-	vbreeder = Individual(alpha_, alphaAge_, alphaAge2_, beta_, betaAge_, DriftUniform(generator), BREEDER);
-	breederalive = 1;
-	fecundity = NO_VALUE;
-	realfecundity = NO_VALUE;
-
-	for (int i = 0; i < numhelp_; ++i)
-	{
-		vhelpers.push_back(Individual(alpha_, alphaAge_, alphaAge2_, beta_, betaAge_, DriftUniform(generator), HELPER));
-	}
-
-	TotalPopulation();
-}
 
 
 /* INITIALISE POPULATION */
