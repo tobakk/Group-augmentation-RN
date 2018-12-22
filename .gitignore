@@ -93,6 +93,7 @@ fabric.properties
 *.lastbuildstate
 *.tlog
 *.db
+test
 Group_augmentation_RN/.vs/Group_augmentation_RN/v15/.suo
 Group_augmentation_RN/.vs/Group_augmentation_RN/v15/.suo
 Group_augmentation_RN/Group_augmentation_RN/Release/Group_au.CEC33DAF.tlog/CL.write.1.tlog
