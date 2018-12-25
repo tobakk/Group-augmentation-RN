@@ -8,6 +8,10 @@ Group_augmentation_RN
 # CMake
 cmake-build-*/
 
+#is generated
+Makefile
+
+
 # Mongo Explorer plugin
 .idea/**/mongoSettings.xml
 
