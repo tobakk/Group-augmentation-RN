@@ -1,17 +1,32 @@
 
-#include "Classes.cpp"
+#ifndef GROUP_AUGMENTATION_INDIVIDUAL_H
+#define GROUP_AUGMENTATION_INDIVIDUAL_H
+
+
+#include "classes.h"
+
+using namespace std;
 
 struct Individual // define individual traits
 {
-    Individual(double alpha_ = 0, double alphaAge_ = 0, double alphaAge2_ = 0, double beta_ = 0, double betaAge_ = 0,
-               double drift_ = 0, Classes own_ = HELPER);
+    Individual(double alpha_,
+               double alphaAge_,
+               double alphaAge2_,
+               double beta_,
+               double betaAge_,
+               double drift_,
+               default_random_engine randomNumberGenerator,
+               Classes own_ = HELPER);
 
-    Individual(const Individual &mother);
+//    Individual(const Individual &mother, default_random_engine randomNumberGenerator);
+
 
     double alpha, alphaAge, alphaAge2, beta, betaAge, drift,        // genetic values
-            dispersal, help, survival;                                    // phenotypic values
+            dispersal, help, survival;                               // phenotypic values
     Classes fishType;                                                // possible classes: breeder, helper, floater
     int age;
+
+    default_random_engine randomNumberGenerator;
 
     //Functions inside Individual
     double calcDispersal();
@@ -22,3 +37,5 @@ struct Individual // define individual traits
 
     void Mutate();
 };
+
+#endif //GROUP_AUGMENTATION_INDIVIDUAL_H

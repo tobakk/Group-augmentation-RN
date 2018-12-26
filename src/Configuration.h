@@ -4,6 +4,30 @@
 #define GROUP_AUGMENTATION_CONFIGURATION_H
 
 
+#include <random>
+
+using namespace std;
+
+/*CONSTANTS AND STRUCTURES*/
+
+
+//Population parameters and Statistics
+int replica, gen, population, populationBeforeSurv, deaths, floatersgenerated, driftGroupSize, maxGroupSize, populationHelpers;
+double relatedness;
+double meanGroupsize, stdevGroupSize, sumGroupSize, sumsqGroupSize, varGroupSize,
+        meanAge, stdevAge, sumAge, sumsqAge, varAge,
+        meanAlpha, stdevAlpha, sumAlpha, sumsqAlpha, varAlpha,
+        meanAlphaAge, stdevAlphaAge, sumAlphaAge, sumsqAlphaAge, varAlphaAge,
+        meanAlphaAge2, stdevAlphaAge2, sumAlphaAge2, sumsqAlphaAge2, varAlphaAge2,
+        meanBeta, stdevBeta, sumBeta, sumsqBeta, varBeta,
+        meanBetaAge, stdevBetaAge, sumBetaAge, sumsqBetaAge, varBetaAge,
+        meanHelp, stdevHelp, sumHelp, sumsqHelp, varHelp,
+        meanDispersal, stdevDispersal, sumDispersal, sumsqDispersal, varDispersal,
+        meanDriftB, sumDriftB, meanDriftH, sumDriftH,                                            //relatedness
+        meanDriftBH, meanDriftBB, sumDriftBH, sumDriftBB,
+        corr_HelpDispersal, sumprodHelpDispersal;
+
+
 
 
 //Run parameters
@@ -56,6 +80,10 @@ const double STEP_DRIFT = 0.01;            // mutation step size in the neutral 
 
 
 const int NO_VALUE = -1;
+
+uniform_real_distribution<double> driftUniformDistribution(0, 100);
+uniform_real_distribution<double> uniformDistribution(0, 1);
+
 
 
 #endif //GROUP_AUGMENTATION_CONFIGURATION_H

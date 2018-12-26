@@ -15,8 +15,12 @@
 #include <cmath>
 #include <algorithm>
 #include <vector>
-#include <random>
 #include <pthread.h>
+
+
+#include "Individual.h"
+#include "Configuration.h"
+
 //#include <chrono> //if we use the system clock as seed
 
 using namespace std;
@@ -25,7 +29,6 @@ using namespace std;
 ofstream fout("group_augmentation_init.txt");
 ofstream fout2("group_augmentation_last_generation_init.txt");
 
-#define NUM_THREADS 5
 
 /*CONSTANTS AND STRUCTURES*/
 
@@ -33,150 +36,26 @@ ofstream fout2("group_augmentation_last_generation_init.txt");
 //mt19937 mt(time(0)); // random number generator
 //unsigned seed = std::chrono::system_clock::now().time_since_epoch().count(); // if we don't want to obtain the same simulation under the same parameters
 unsigned seed = 0; //in the same run takes different random values, but different runs same values unless we change the seed
-default_random_engine generator(seed);
-uniform_real_distribution<double> DriftUniform(0, 100);
-uniform_real_distribution<double> Uniform(0, 1);
-
-
-//Run parameters
-const bool REACTION_NORM_HELP = 1;        //Apply reaction norm to age for level of help?
-const bool REACTION_NORM_DISPERSAL = 1;    //Apply reaction norm to age for dispersal?
-
-const int MAX_COLONIES = 1000;     // max number of groups or colonies --> breeding spots.
-const int NUM_GENERATIONS = 200000;
-const int MAX_NUM_REPLICATES = 20;
-const int SKIP = 50;   // interval between print-outs
-
-//Fix values 
-const double PREDATION = 0.1;
-const double BIAS_FLOAT_BREEDER = 2;
-const int INIT_NUM_HELPERS = 3;
-
-// Modifiers
-const double K0 = 1;    // min fecundity, fecundity when no help provided.
-const double K1 = 1;    // benefit of cumhelp in the fecundity
-const double Xsh = 3;    // cost of help in survival
-const double Xsn = 1;    // benefit of group size in survival
-
-
-//Genetic values
-
-//For help
-const double INIT_ALPHA = 0.0;            // bigger values higher level of help
-const double INIT_ALPHA_AGE = 0.0;            //linear term for age, positive: higher help with age
-const double INIT_ALPHA_AGE2 = 0.0;            //quadratic term for age, positive: higher help with age
-
-const double MUTATION_ALPHA = 0.05;            // mutation rate in alpha for level of help
-const double MUTATION_ALPHA_AGE = 0.05;
-const double MUTATION_ALPHA_AGE2 = 0.05;
-const double STEP_ALPHA = 0.01;            // mutation step size in alpha for level of help
-
-
-//For dispersal
-const double INIT_BETA = 1.0;            // bigger values higher dispersal
-const double INIT_BETA_AGE = 0.0;            // 0: age has no effect, positive: dispersal decreases with age
-
-const double MUTATION_BETA = 0.05;            // mutation rate for the propensity to disperse
-const double MUTATION_BETA_AGE = 0.05;
-const double STEP_BETA = 0.01;            // mutation step size for the propensity to disperse
-
-
-//For relatedness
-const double MUTATION_DRIFT = 0.05;            // mutation rate in the neutral selected value to track level of relatedness
-const double STEP_DRIFT = 0.01;            // mutation step size in the neutral genetic value to track level of relatedness
-
-
-enum classes {
-    BREEDER, HELPER, FLOATER
-};
-
-const int NO_VALUE = -1;
-
-//Population parameters and Statistics
-int replica, gen, population, populationBeforeSurv, deaths, floatersgenerated, driftGroupSize, maxGroupSize, populationHelpers;
-double relatedness;
-double meanGroupsize, stdevGroupSize, sumGroupSize, sumsqGroupSize, varGroupSize,
-        meanAge, stdevAge, sumAge, sumsqAge, varAge,
-        meanAlpha, stdevAlpha, sumAlpha, sumsqAlpha, varAlpha,
-        meanAlphaAge, stdevAlphaAge, sumAlphaAge, sumsqAlphaAge, varAlphaAge,
-        meanAlphaAge2, stdevAlphaAge2, sumAlphaAge2, sumsqAlphaAge2, varAlphaAge2,
-        meanBeta, stdevBeta, sumBeta, sumsqBeta, varBeta,
-        meanBetaAge, stdevBetaAge, sumBetaAge, sumsqBetaAge, varBetaAge,
-        meanHelp, stdevHelp, sumHelp, sumsqHelp, varHelp,
-        meanDispersal, stdevDispersal, sumDispersal, sumsqDispersal, varDispersal,
-        meanDriftB, sumDriftB, meanDriftH, sumDriftH,                                            //relatedness
-        meanDriftBH, meanDriftBB, sumDriftBH, sumDriftBB,
-        corr_HelpDispersal, sumprodHelpDispersal;
-
-
-//Structures
-
-struct Individual // define individual traits
-{
-    Individual(double alpha_ = 0, double alphaAge_ = 0, double alphaAge2_ = 0, double beta_ = 0, double betaAge_ = 0,
-               double drift_ = 0, classes own_ = HELPER);
-
-    Individual(const Individual &mother);
-
-    double alpha, alphaAge, alphaAge2, beta, betaAge, drift,        // genetic values
-            dispersal, help, survival;                                    // phenotypic values
-    classes fishType;                                                // possible classes: breeder, helper, floater
-    int age;
-
-    //Functions inside Individual
-    double calcDispersal();
-
-    double calcHelp();
-
-    double calcSurvival(int totalHelpers);
-
-    void Mutate();
-};
-
-
-Individual::Individual(double alpha_, double alphaAge_, double alphaAge2_, double beta_, double betaAge_, double drift_,
-                       classes fishType_) {
-    alpha = alpha_;
-    alphaAge = alphaAge_;
-    alphaAge2 = alphaAge2_;
-    beta = beta_;
-    betaAge = betaAge_;
-    drift = drift_;
-    Mutate();
-    fishType = fishType_;
-    age = 1;
-    survival = NO_VALUE;
-    help = 0;
-    dispersal = 0;
-}
-
-Individual::Individual(const Individual &copy) {
-    alpha = copy.alpha;
-    alphaAge = copy.alphaAge;
-    alphaAge2 = copy.alphaAge2;
-    beta = copy.beta;
-    betaAge = copy.betaAge;
-    drift = copy.drift;
-    fishType = copy.fishType;
-    age = copy.age;
-    survival = copy.survival;
-    help = copy.help;
-    dispersal = copy.dispersal;
-}
+default_random_engine randomNumberGenerator(seed);
 
 
 struct Group // define group traits
 {
     Group(double alpha_ = INIT_ALPHA, double alphaAge_ = INIT_ALPHA_AGE, double alphaAge2_ = INIT_ALPHA_AGE2,
           double beta_ = INIT_BETA, double betaAge_ = INIT_BETA_AGE, int numhelp_ = INIT_NUM_HELPERS) {
-        vbreeder = Individual(alpha_, alphaAge_, alphaAge2_, beta_, betaAge_, DriftUniform(generator), BREEDER);
+        vbreeder = Individual(alpha_, alphaAge_, alphaAge2_, beta_, betaAge_,
+                              driftUniformDistribution(randomNumberGenerator), randomNumberGenerator, BREEDER);
         breederalive = 1;
         fecundity = NO_VALUE;
         realfecundity = NO_VALUE;
+        this->randomNumberGenerator = randomNumberGenerator;
+
 
         for (int i = 0; i < numhelp_; ++i) {
-            vhelpers.push_back(
-                    Individual(alpha_, alphaAge_, alphaAge2_, beta_, betaAge_, DriftUniform(generator), HELPER));
+            Individual newIndividual = Individual(alpha_, alphaAge_, alphaAge2_, beta_, betaAge_,
+                                                  driftUniformDistribution(randomNumberGenerator),
+                                                  randomNumberGenerator, HELPER);
+            vhelpers.push_back(newIndividual);
         }
 
         TotalPopulation();
@@ -189,17 +68,20 @@ struct Group // define group traits
     double fecundity;
     int realfecundity;
 
+    default_random_engine randomNumberGenerator;
+
+
     Individual vbreeder; // create breeder inside group
-    vector <Individual> vhelpers; // create a vector of helpers inside each group
+    vector<Individual> vhelpers; // create a vector of helpers inside each group
 
 //Functions inside Group
-    void Dispersal(vector <Individual> &vfloaters);
+    void Dispersal(vector<Individual> &vfloaters);
 
     void Help();
 
     void SurvivalGroup(int &deaths);
 
-    void NewBreeder(vector <Individual> &vfloaters);
+    void NewBreeder(vector<Individual> &vfloaters);
 
     void IncreaseAge();
 
@@ -212,7 +94,7 @@ struct Group // define group traits
 
 
 /* INITIALISE POPULATION */
-void InitGroup(vector <Group> &vgroups) {
+void InitGroup(vector<Group> &vgroups) {
     int i;
     for (i = 0; i < MAX_COLONIES; i++) {
         vgroups[i] = Group(INIT_ALPHA, INIT_ALPHA_AGE, INIT_ALPHA_AGE2, INIT_BETA, INIT_BETA_AGE, INIT_NUM_HELPERS);
@@ -220,26 +102,7 @@ void InitGroup(vector <Group> &vgroups) {
 }
 
 
-/* BECOME FLOATER (STAY VS DISPERSE) */
-
-double Individual::calcDispersal() {
-    if (!REACTION_NORM_DISPERSAL) {
-
-        dispersal = beta; // Range from 0 to 1 to compare to a Uniform distribution
-
-        if (dispersal < 0 || dispersal > 1) {
-            cout << "error in dispersal: " << dispersal << endl;
-        }
-
-    } else {
-        dispersal = 1 / (1 + exp(betaAge * age - beta));
-    }
-
-    return dispersal;
-}
-
-
-void Group::Dispersal(vector <Individual> &vfloaters) {
+void Group::Dispersal(vector<Individual> &vfloaters) {
     vector<Individual>::iterator dispersalIt = vhelpers.begin();
     int sizevec = vhelpers.size();
     int counting = 0;
@@ -250,7 +113,7 @@ void Group::Dispersal(vector <Individual> &vfloaters) {
             cout << "error in dispersal: " << dispersalIt->dispersal << endl;
         }
 
-        if (Uniform(generator) < dispersalIt->dispersal) {
+        if (uniformDistribution(randomNumberGenerator) < dispersalIt->dispersal) {
             vfloaters.push_back(*dispersalIt); //add the individual to the vector floaters in the last position
             vfloaters[vfloaters.size() - 1].fishType = FLOATER;
             *dispersalIt = vhelpers[vhelpers.size() -
@@ -261,19 +124,6 @@ void Group::Dispersal(vector <Individual> &vfloaters) {
             ++dispersalIt, ++counting;
     }
     //cout << "floater size " << vfloaters.size() << endl;
-}
-
-
-/*DISPLAY LEVEL OF HELP*/
-double Individual::calcHelp() {
-    if (!REACTION_NORM_HELP) {
-        help = alpha;
-    } else {
-        help = alpha + alphaAge * age + alphaAge2 * age * age;
-        if (help < 0) { help = 0; }
-    }
-
-    return help;
 }
 
 
@@ -290,15 +140,6 @@ void Group::Help() //Calculate accumulative help of all individuals inside of ea
     //cumhelp += vbreeder.help;
 }
 
-/*SURVIVAL*/
-
-double Individual::calcSurvival(int totalHelpers) {
-    survival = (1 - PREDATION) /
-               (1 + exp(Xsh * help - Xsn * (totalHelpers + 1))); // +1 to know group size (1 breeder + helpers)
-
-    return survival;
-}
-
 
 void Group::SurvivalGroup(int &deaths) {
     totalHelpers = vhelpers.size();
@@ -313,7 +154,7 @@ void Group::SurvivalGroup(int &deaths) {
         survHIt->calcSurvival(totalHelpers);
 
         //Mortality
-        if (Uniform(generator) > survHIt->survival) {
+        if (uniformDistribution(randomNumberGenerator) > survHIt->survival) {
             *survHIt = vhelpers[vhelpers.size() - 1];
             vhelpers.pop_back();
             ++counting;
@@ -324,14 +165,14 @@ void Group::SurvivalGroup(int &deaths) {
 
     //Calculate the survival of the breeder
     vbreeder.calcSurvival(totalHelpers);
-    if (Uniform(generator) > vbreeder.survival) {
+    if (uniformDistribution(randomNumberGenerator) > vbreeder.survival) {
         breederalive = 0;
         vbreeder.age = NO_VALUE;
         deaths++;
     }
 }
 
-void SurvivalFloaters(vector <Individual> &vfloaters, int &deaths) //Calculate the survival of the floaters
+void SurvivalFloaters(vector<Individual> &vfloaters, int &deaths) //Calculate the survival of the floaters
 {
     vector<Individual>::iterator survFIt = vfloaters.begin();
     int sizevec = vfloaters.size();
@@ -341,7 +182,7 @@ void SurvivalFloaters(vector <Individual> &vfloaters, int &deaths) //Calculate t
         survFIt->calcSurvival(0);
 
         //Mortality
-        if (Uniform(generator) > survFIt->survival) {
+        if (uniformDistribution(randomNumberGenerator) > survFIt->survival) {
             *survFIt = vfloaters[vfloaters.size() - 1];
             vfloaters.pop_back();
             ++counting;
@@ -353,23 +194,23 @@ void SurvivalFloaters(vector <Individual> &vfloaters, int &deaths) //Calculate t
 
 /* BECOME BREEDER */
 
-void Group::NewBreeder(vector <Individual> &vfloaters) {
+void Group::NewBreeder(vector<Individual> &vfloaters) {
     //    Select a random sample from the floaters
     int i = 0;
     int sumage = 0;
     double currentposition = 0; //age of the previous ind taken from Candidates
     int UniformFloatNum;
-    double RandP = Uniform(generator);
+    double RandP = uniformDistribution(randomNumberGenerator);
     int proportFloaters = round(vfloaters.size() * BIAS_FLOAT_BREEDER / MAX_COLONIES); ///justify the 10 multiplier
 
-    vector < Individual * > Candidates;
+    vector<Individual *> Candidates;
     vector<double> position; //vector of age to choose with higher likelihood the ind with higher age
     vector<int> TemporaryCandidates; // to prevent taking the same ind several times in the sample
 
     if (vfloaters.size() > 0 && vfloaters.size() > proportFloaters) {
         while (i < proportFloaters) {
             uniform_int_distribution<int> UniformFloat(0, vfloaters.size() - 1); //random floater ID taken in the sample
-            UniformFloatNum = UniformFloat(generator);
+            UniformFloatNum = UniformFloat(randomNumberGenerator);
             TemporaryCandidates.push_back(UniformFloatNum); //add references of the floaters sampled to a vector
             sort(TemporaryCandidates.begin(), TemporaryCandidates.end()); //sort vector
             i++;
@@ -438,13 +279,13 @@ void Group::NewBreeder(vector <Individual> &vfloaters) {
 
 /*REASSIGN FLOATERS*/
 
-void Reassign(vector <Individual> &vfloaters, vector <Group> &vgroups) {
+void Reassign(vector<Individual> &vfloaters, vector<Group> &vgroups) {
     uniform_int_distribution<int> UniformMaxCol(0, MAX_COLONIES - 1);
     int selectGroup;
     vector<Individual>::iterator indIt;
     while (!vfloaters.empty()) {
         indIt = vfloaters.end() - 1;
-        selectGroup = UniformMaxCol(generator);
+        selectGroup = UniformMaxCol(randomNumberGenerator);
         indIt->fishType = HELPER; //modify the class
         vgroups[selectGroup].vhelpers.push_back(
                 *indIt); //add the floater to the helper vector in a randomly selected group
@@ -487,7 +328,7 @@ void Group::Fecundity() {
     fecundity = K0 + K1 * cumhelp / (1 + cumhelp * K1);
 
     poisson_distribution<int> PoissonFec(fecundity);
-    realfecundity = PoissonFec(generator);
+    realfecundity = PoissonFec(randomNumberGenerator);
 }
 
 void Group::Reproduction() // populate offspring generation
@@ -497,56 +338,15 @@ void Group::Reproduction() // populate offspring generation
         {
             vhelpers.push_back(
                     Individual(vbreeder.alpha, vbreeder.alphaAge, vbreeder.alphaAge2, vbreeder.beta, vbreeder.betaAge,
-                               vbreeder.drift)); //create a new individual as helper in the group. Call construct to assign the mother genetic values to the offspring, construct calls Mutate function.
+                               vbreeder.drift,
+                               randomNumberGenerator)); //create a new individual as helper in the group. Call construct to assign the mother genetic values to the offspring, construct calls Mutate function.
         }
-    }
-}
-
-
-void Individual::Mutate() // mutate genome of offspring 
-{
-    normal_distribution<double> NormalA(0,
-                                        STEP_ALPHA); ///could be simplified if I decide to have all the steps size with the same magnitude
-    normal_distribution<double> NormalB(0, STEP_BETA);
-    normal_distribution<double> NormalD(0, STEP_DRIFT);
-
-    if (Uniform(generator) < MUTATION_ALPHA) {
-        alpha += NormalA(generator);
-        if (!REACTION_NORM_HELP) {
-            if (alpha < 0) { alpha = 0; }
-        }
-    }
-    if (REACTION_NORM_HELP) {
-        if (Uniform(generator) < MUTATION_ALPHA_AGE) {
-            alphaAge += NormalA(generator);
-        }
-
-        if (Uniform(generator) < MUTATION_ALPHA_AGE2) {
-            alphaAge2 += NormalA(generator);
-        }
-    }
-
-    if (Uniform(generator) < MUTATION_BETA) {
-        beta += NormalB(generator);
-        if (!REACTION_NORM_DISPERSAL) {
-            if (beta < 0) { beta = 0; }
-            if (beta > 1) { beta = 1; }
-        }
-    }
-    if (REACTION_NORM_DISPERSAL) {
-        if (Uniform(generator) < MUTATION_BETA_AGE) {
-            betaAge += NormalD(generator);
-        }
-    }
-
-    if (Uniform(generator) < MUTATION_DRIFT) {
-        drift += NormalD(generator);
     }
 }
 
 
 /* CALCULATE STATISTICS */
-void Statistics(vector <Group> vgroups) {
+void Statistics(vector<Group> vgroups) {
 
     relatedness = 0.0, driftGroupSize = 0, populationHelpers = 0,
     meanGroupsize = 0.0, stdevGroupSize = 0.0, maxGroupSize = 0, sumGroupSize = 0.0, sumsqGroupSize = 0.0, varGroupSize = 0.0,
@@ -799,8 +599,9 @@ void wait_for_return() {
     getchar();
 }
 
+/* MAIN PROGRAM */
+int main() {
 
- void *simulate(void *threadid){
     Printparams();
 
     // column headings in output file 1
@@ -835,8 +636,8 @@ void wait_for_return() {
              << "beta" << setw(9) << "betaAge" << setw(9) << "relat" << endl;
 
 
-        vector <Individual> vfloaters;
-        vector <Group> vgroups(MAX_COLONIES);
+        vector<Individual> vfloaters;
+        vector<Group> vgroups(MAX_COLONIES);
 
         InitGroup(vgroups);
 
@@ -951,27 +752,8 @@ void wait_for_return() {
         //fout2 << endl << endl << endl;
 
     }
-    pthread_exit(NULL);
-
-}
-
-/* MAIN PROGRAM */
-int main() {
-
-    pthread_t threads[NUM_THREADS];
-    int rc;
-    int i;
-
-    for( i = 0; i < NUM_THREADS; i++ ) {
-        cout << "main() : creating thread, " << i << endl;
-        rc = pthread_create(&threads[i], NULL, simulate, (void *)i);
-
-        if (rc) {
-            cout << "Error:unable to create thread," << rc << endl;
-            exit(-1);
-        }
-    }
 
     wait_for_return();
+
     return 0;
 }
