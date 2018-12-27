@@ -75,8 +75,6 @@ const double MUTATION_DRIFT		= 0.05;			// mutation rate in the neutral selected 
 const double STEP_DRIFT			= 0.01;			// mutation step size in the neutral genetic value to track level of relatedness
 
 
-enum classes { BREEDER, HELPER, FLOATER };
-
 const int NO_VALUE = -1;
 
 //Population parameters and Statistics

@@ -20,6 +20,7 @@
 //#include <chrono> //if we use the system clock as seed
 
 #include "configuration.h"
+#include "classes.h"
 
 using namespace std;
 

@@ -1,0 +1,10 @@
+//
+// Created by odin on 27/12/18.
+//
+
+#ifndef GROUP_AUGMENTATION_CLASSES_H
+#define GROUP_AUGMENTATION_CLASSES_H
+
+
+enum classes { BREEDER, HELPER, FLOATER };
+#endif //GROUP_AUGMENTATION_CLASSES_H
