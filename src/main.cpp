@@ -26,8 +26,8 @@
 using namespace std;
 
 // Output file
-ofstream fout("group_augmentation_init.txt");
-ofstream fout2("group_augmentation_last_generation_init.txt");
+ofstream fout("out/group_augmentation_init.txt");
+ofstream fout2("out/group_augmentation_last_generation_init.txt");
 
 
 /*CONSTANTS AND STRUCTURES*/
