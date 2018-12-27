@@ -3,6 +3,8 @@
 
 .idea*
 
+build/
+
 Group_augmentation_RN
 
 # CMake

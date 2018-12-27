@@ -7,9 +7,7 @@ set(CMAKE_INSTALL_NAME_DIR build)
 project("Group Augmentation")
 
 add_executable(
-        debug_program
+        app
 
         src/main.cpp
-        src/Configuration.h
-        src/Individual.h
-        src/Individual.cpp src/classes.h)
+)
