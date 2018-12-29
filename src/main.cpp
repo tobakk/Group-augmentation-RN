@@ -47,7 +47,7 @@ const int NUM_GENERATIONS = 200000;
 const int MAX_NUM_REPLICATES = 20;
 const int SKIP = 50;   // interval between print-outs
 
-//Fix values 
+//Fix values
 const double PREDATION = 0.1;
 const double BIAS_FLOAT_BREEDER = 2;
 const int INIT_NUM_HELPERS = 3;
@@ -503,7 +503,7 @@ void Group::Reproduction() // populate offspring generation
 }
 
 
-void Individual::Mutate() // mutate genome of offspring 
+void Individual::Mutate() // mutate genome of offspring
 {
     normal_distribution<double> NormalA(0,
                                         STEP_ALPHA); ///could be simplified if I decide to have all the steps size with the same magnitude
@@ -800,7 +800,9 @@ void wait_for_return() {
 }
 
 
- void *simulate(void *threadid){
+/* MAIN PROGRAM */
+int main() {
+
     Printparams();
 
     // column headings in output file 1
@@ -951,27 +953,8 @@ void wait_for_return() {
         //fout2 << endl << endl << endl;
 
     }
-    pthread_exit(NULL);
-
-}
-
-/* MAIN PROGRAM */
-int main() {
-
-    pthread_t threads[NUM_THREADS];
-    int rc;
-    int i;
-
-    for( i = 0; i < NUM_THREADS; i++ ) {
-        cout << "main() : creating thread, " << i << endl;
-        rc = pthread_create(&threads[i], NULL, simulate, (void *)i);
-
-        if (rc) {
-            cout << "Error:unable to create thread," << rc << endl;
-            exit(-1);
-        }
-    }
 
     wait_for_return();
+
     return 0;
 }
